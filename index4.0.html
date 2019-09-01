@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>game of life</title>
+  <style>            
+    *{margin: 0; padding: 0;}
+    body {background-image: url(img/bck.jpg);}
+    table td{width: 15px; height: 15px;}            
+    table{margin: 0 auto; border: 1px solid #C7C4D1;}
+    h1{text-align: center; margin: 10px 0;}
+    input[type="text"]{width: 45px;}
+    #panel_config{text-align: center;}
+    .cell_dead{background-color: "";}
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Game of Life</h1>
+  </div>
+  <div id="panel_config">
+    <input id="table_axis_x" type="number" placeholder="width" value="80">
+    <input id="table_axis_y" type="text" placeholder="height" value="80">
+    <input type="button" id="createGrid" value="createGrid" onclick="createGrid()">   
+    <!--demo输入框-->
+    <input id="ipt_demo1" type="submit" value="Demo1" onclick="demo(1)">
+    <input id="ipt_demo2" type="submit" value="Demo2" onclick="demo(2)">
+    <input id="ipt_demo3" type="submit" value="Demo3" onclick="demo(3)">
+     <!--时间输入框-->
+    <input class="inp" id="inp_speed" type="text" placeholder="millisecond" value="1000">
+    <input type="button" id="speed" value="Start" onclick="speed()">
+    <input type="button" id="pause" value="Pause" disabled="disabled" onclick="pause()">  
+    <input type="button" id="reset" value="Reset" onclick="reset()">       
+  </div>
+  <table border="1" cellspacing="0">    
+    <tbody id="tbody"></tbody>
+  </table>
+  <script type="text/javascript">
+    var table,
+        d,
+        inpSpeed,
+        inputXY,
+        table_axis_x_value,
+        table_axis_y_value,
+        timeover,
+        game_state;
+
+    // 状态
+    var STATE = {
+      'ALIVE': 1,
+      'DEAD': 0
+    };
+
+    // 定义cell管理员
+    var CellManager = function() {
+      var cell_mapping = {};
+      this.getCell = function(cell_id) {
+        return cell_mapping[cell_id];
+      };
+      this.getCellList = function() {
+        var cell_list = [];
+        for(var i in cell_mapping) {
+          cell_list.push(cell_mapping[i]);
+        }
+        return cell_list;
+      };
+      this.addCell = function(c) {
+        cell_mapping[c.getId()] = c;
+      };
+      this.getCellMapping = function() {
+        return cell_mapping ;
+      }
+    };
+    var cell_manager = new CellManager();
+
+    // 定义cell类
+    var Cell = function(x, y, x_length, y_length, dom) {
+      var id = "cell_" + x + "_" + y;      
+      var dom = dom;
+      var neighborId = [];
+      var neighborDom = [];
+      var state;
+      this.getId = function() {
+        return id;
+      };
+      this.getDom = function() {
+        return dom;
+      };
+      this.getNeighbor = function() {
+        var neighbor = [];
+        for(var i=x-1; i<=x+1; i++) {
+          for(var j=y-1; j<=y+1; j++) {
+
+            // 判断邻居cell不存在时，执行continue
+            if((i<0 || j<0 || i>y_length-1 || j>x_length-1) || (i==x && j==y)) {
+              continue;
+            }
+            neighbor.push(cell_manager.getCell('cell_' + i + '_' + j));
+          }          
+        }
+        return neighbor;
+      };
+      this.setState = function(s) {
+        switch(s) {
+          case STATE.ALIVE:
+            state = STATE.ALIVE;
+            dom.style.background = "red";
+            break;
+          case STATE.DEAD:
+            state = STATE.DEAD;
+            dom.style.background = "";
+            break;
+          default:
+            dom.style.background = "";
+        };
+      };     
+      this.getState = function() {        
+        return state;
+      };
+    };     
+
+    // 速度设置部分
+    function speed() {
+      var inpSpeed = document.getElementById("inp_speed").value;
+      timeover = setInterval(drawing,inpSpeed);
+      document.getElementById("speed").setAttribute("disabled","disabled");
+      document.getElementById("pause").removeAttribute("disabled");
+    };
+
+    //全局监听对象
+    document.getElementsByTagName("table")[0].addEventListener('click',function(e) {        
+      cell_manager.getCell(e.target.id).setState(STATE.ALIVE);                        
+    });
+
+    // reset设置
+    function reset() {
+      var td = document.getElementsByTagName("td");
+      for(i=0; i<td.length; i++) {
+        cell_manager.getCell(td[i].id).setState(STATE.DEAD);
+        clearInterval(timeover);
+        var input_disable = document.getElementsByTagName("input");
+        document.getElementById("speed").removeAttribute("disabled");
+        document.getElementById("pause").setAttribute("disabled","disabled");
+      }        
+    };
+
+    // pause设置
+    function pause() {
+      clearInterval(timeover);
+      document.getElementById("speed").removeAttribute("disabled");
+      document.getElementById("pause").setAttribute("disabled","disabled");
+    };
+
+    // 表格生成部分
+    function createGrid() {
+      document.getElementById("createGrid").setAttribute("disabled","disabled");
+      if(document.getElementsByTagName("tbody").length == 1) {
+
+        // 点击事件发生，获取输入的X和Y的值
+        var x_length = document.getElementById("table_axis_x").value;
+        var y_length = document.getElementById("table_axis_y").value;
+
+        // 创建新的tbody元素，并插入到table元素
+        var tbody = document.getElementById("tbody");        
+
+        // 创建tr和td元素，利用嵌套循环将tr插到tbody，将td插到tr
+        for(var i=0; i<y_length; i++) {
+          var tr = document.createElement("tr"); 
+          tbody.appendChild(tr);
+
+          for(var j=0; j<x_length; j++) {
+            var td = document.createElement("td");
+            td.setAttribute("id",'cell_' + i + '_' + j);
+            tr.appendChild(td);
+            var cell = new Cell(i, j, x_length, y_length, td);
+            cell_manager.addCell(cell);              
+          }
+        }     
+      }
+    }//createGrid函数调用结束
+
+    //遍历管理员
+    function drawing() {
+      var cell_mapping = cell_manager.getCellMapping();
+      var lifeCells = [];
+      var deadCells = [];
+
+      for(var p in cell_mapping) {
+        var lifeNumbers = 0;
+        var cell = cell_mapping[p];
+        var neighbor_list = cell.getNeighbor();
+
+        for(var i=0; i<neighbor_list.length; i++) {
+          if(neighbor_list[i].getState()===STATE.ALIVE) {
+            lifeNumbers++;
+          }                                         
+        }
+
+        if(cell.getState() === STATE.ALIVE) {
+          if(lifeNumbers<2 || lifeNumbers>3) {
+            deadCells.push(cell);
+          }
+        }
+        else {
+          if(lifeNumbers===3) {
+            lifeCells.push(cell);
+          }
+        }                   
+      }// for循环结束
+      var time_begin=new Date();
+
+      for(var i=0; i<lifeCells.length; i++) {
+        lifeCells[i].setState(STATE.ALIVE);
+      }
+
+      for(var i=0; i<deadCells.length; i++) {
+        deadCells[i].setState(STATE.DEAD);
+      }
+      var time_end=new Date();      
+    };// drawing结束
+
+  //demo
+  var demo_1 = [{"x":4,"y":3},{"x":4,"y":4},{"x":4,"y":5}];
+  var demo_2 = [{"x":1,"y":3},{"x":2,"y":1},{"x":2,"y":3},{"x":3,"y":2},{"x":3,"y":3}];
+  var demo_3 = [
+    {"x":0,"y":42},
+    {"x":0,"y":44},
+    {"x":1,"y":41},
+    {"x":1,"y":44},
+    {"x":2,"y":40},
+    {"x":2,"y":41},
+    {"x":2,"y":52},
+    {"x":2,"y":59},
+    {"x":3,"y":32},
+    {"x":3,"y":33},
+    {"x":3,"y":38},
+    {"x":3,"y":39},
+    {"x":3,"y":43},
+    {"x":3,"y":52},
+    {"x":3,"y":58},
+    {"x":3,"y":60},
+    {"x":4,"y":32},
+    {"x":4,"y":33},
+    {"x":4,"y":40},
+    {"x":4,"y":41},
+    {"x":4,"y":51},
+    {"x":4,"y":58},
+    {"x":4,"y":59},
+    {"x":4,"y":61},
+    {"x":5,"y":41},
+    {"x":5,"y":44},
+    {"x":5,"y":47},
+    {"x":5,"y":48},
+    {"x":5,"y":58},
+    {"x":5,"y":59},
+    {"x":5,"y":61},
+    {"x":5,"y":62},
+    {"x":5,"y":66},
+    {"x":5,"y":67},
+    {"x":6,"y":42},
+    {"x":6,"y":44},
+    {"x":6,"y":47},
+    {"x":6,"y":50},
+    {"x":6,"y":51},
+    {"x":6,"y":52},
+    {"x":6,"y":58},
+    {"x":6,"y":59},
+    {"x":6,"y":61},
+    {"x":6,"y":66},
+    {"x":6,"y":67},
+    {"x":7,"y":47},
+    {"x":7,"y":48},
+    {"x":7,"y":49},
+    {"x":7,"y":50},
+    {"x":7,"y":58},
+    {"x":7,"y":60},
+    {"x":8,"y":48},
+    {"x":8,"y":49},
+    {"x":8,"y":59}];
+    function demo(s) {
+
+      for(i=0; i<eval('demo_'+s).length; i++) {
+        cell_manager.getCell('cell_' + eval('demo_'+s)[i]['x'] + '_' + eval('demo_'+s)[i]['y']).setState(STATE.ALIVE);  
+      }        
+    }; 
+  </script>
+</body>
+</html>
