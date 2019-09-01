@@ -1,3 +1,3 @@
 # game-of-life
 生命游戏的 JavaScript 实现
-![image](https://zhoumingjie.com/game-of-life/img/readlogo.png)
+![image](https://raw.githubusercontent.com/mingjiezhou/game-of-life/master/img/readlogo.png)
